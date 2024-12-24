@@ -8,11 +8,13 @@
 
 # YMMV -- BE SURE TO SET YOUR $CustomSceneryPath BEFORE RUNNING THE SCRIPT (or expecting it to work, for that matter...)
 
+# Version 1.1
+# - Specified *my* Custom Scenery folder path.
 # Version 1.0
 # - Initial release.
 
 # Define the path to X-Plane's Custom Scenery folder and scenery_packs.ini file
-$CustomSceneryPath = "C:\Path\To\X-Plane 12\Custom Scenery"
+$CustomSceneryPath = "Z:\SteamLibrary\steamapps\common\X-Plane 12\Custom Scenery"
 $SceneryPacksFile = "$CustomSceneryPath\scenery_packs.ini"
 $BackupFile = "$SceneryPacksFile.bak"
 
