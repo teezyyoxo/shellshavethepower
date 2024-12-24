@@ -5,15 +5,29 @@
 # Created by PBandJamf (@teezyyoxo)
 # 24 Dec 2024 
 # Early Merry Christmas to all and Happy New Year!
-
 # YMMV -- BE SURE TO SET YOUR $CustomSceneryPath BEFORE RUNNING THE SCRIPT (or expecting it to work, for that matter...)
 
+# Version 2.8 (sleepbeuponme)
+# - Fixed path redundancy issue (no more double "Custom Scenery").
+# - Standardized paths: full paths use backslashes (Z:\), inside Custom Scenery uses forward slashes (/).
+# - Better handling of missing folders – no more false positives.
+# - Backup of scenery_packs.ini made BEFORE any changes.
+# - Improved path formatting consistency and clearer logs.
+# - Added safety checks to avoid unnecessary changes.
+# - Broke the script to the point where now it will no longer run because it is bitching about paths and I hate slashes now. I'm going to bed.
+# Version 2.7 (paperboy)
+# - Added handling for non-existent folder references in scenery_packs.ini.
+# - If a folder reference is missing, prompt the user to delete or keep the entry.
+# - Ensured all conflicts are handled interactively with options to resolve them.
+# - Preserved the order of entries and avoided duplicates in the updated scenery_packs.ini.
+# - Backup of scenery_packs.ini created before any changes.
+# - Fixed minor path formatting issues for consistency.
 # Version 2.6 (up-and-up)
 # - Inserted new folders directly above the first SCENERY_PACK line.
 # - Preserved line breaks in scenery_packs.ini for better formatting.
 # - Ensured no duplicate entries and sorted the final list of folders.
-# - Backup of scenery_packs.ini created before any changes.
-# - Fixed minor path formatting issues for consistency.
+# - Backup of the existing scenery_packs.ini file is created before applying any changes.
+# - Fixed path formatting issues when checking folder existence.
 # Version 2.5 (hooray)
 # - Fixed insertion of new folders to the correct location (line 3).
 # - Ensured line breaks in scenery_packs.ini file are preserved.
@@ -64,24 +78,76 @@ if (!(Test-Path $SceneryPacksFile)) {
     $SceneryPacksContent = Get-Content -Path $SceneryPacksFile -ErrorAction SilentlyContinue
 }
 
-# Step 4: Extract existing folder references (normalize path to not include trailing slash)
+# Step 4: Create a backup of the scenery_packs.ini file
+Write-Host "Creating a backup of the existing scenery_packs.ini..." -ForegroundColor Cyan
+Copy-Item -Path $SceneryPacksFile -Destination $BackupFile -Force
+Write-Host "Backup created at $BackupFile" -ForegroundColor Green
+
+# Step 5: Extract existing folder references (normalize path to not include trailing slash)
 $ExistingReferences = @()
 foreach ($Line in $SceneryPacksContent) {
     if ($Line -match "^SCENERY_PACK\s+(.*)$") {
         $folderPath = $Matches[1].Trim()
-        # Remove trailing slash for consistent comparison
+        # Ensure all relative paths within Custom Scenery use forward slashes and normalize
         $folderPath = $folderPath.TrimEnd('\')
+        $folderPath = $folderPath.Replace('\', '/')
         $ExistingReferences += $folderPath
     }
 }
 
-# Step 5: Get a list of all directories in the Custom Scenery folder
+# Step 6: Check if any of the existing references point to non-existent folders
+$NonExistentFolders = @()
+foreach ($Existing in $ExistingReferences) {
+    # Only append Custom Scenery path if it is not already included in the reference
+    if ($Existing.StartsWith("Custom Scenery")) {
+        $FullPath = "$CustomSceneryPath\$Existing"  # Backslashes for full path
+    } else {
+        $FullPath = "$CustomSceneryPath\$Existing"  # Same handling for relative path
+    }
+
+    # Ensure the path uses backslashes for full paths
+    $FullPath = $FullPath.Replace('/', '\')
+
+    Write-Host "Checking path: $FullPath" -ForegroundColor Cyan
+
+    if (-not (Test-Path $FullPath)) {
+        Write-Host "Non-existent folder: $Existing (Full Path: $FullPath)" -ForegroundColor Red
+        $NonExistentFolders += $Existing
+    }
+}
+
+# Step 7: Handle non-existent folders interactively
+if ($NonExistentFolders.Count -gt 0) {
+    Write-Host "The following folder references do not exist in the Custom Scenery folder:" -ForegroundColor Yellow
+    $NonExistentFolders | ForEach-Object { Write-Host "- $_" }
+
+    $ResolveMissing = Read-Host "Would you like to remove these non-existent references from scenery_packs.ini? (yes/no)"
+    if ($ResolveMissing -eq "yes") {
+        foreach ($Missing in $NonExistentFolders) {
+            # Remove non-existent references from $SceneryPacksContent
+            $SceneryPacksContent = $SceneryPacksContent | Where-Object { $_ -notmatch [regex]::Escape($Missing) }
+            Write-Host "Removed non-existent reference: $Missing" -ForegroundColor Green
+        }
+        # Rebuild $ExistingReferences after removing non-existent folders
+        $ExistingReferences = @()
+        foreach ($Line in $SceneryPacksContent) {
+            if ($Line -match "^SCENERY_PACK\s+(.*)$") {
+                $folderPath = $Matches[1].Trim()
+                $folderPath = $folderPath.TrimEnd('\')
+                $folderPath = $folderPath.Replace('\', '/')
+                $ExistingReferences += $folderPath
+            }
+        }
+    }
+}
+
+# Step 8: Get a list of all directories in the Custom Scenery folder
 $SceneryFolders = Get-ChildItem -Path $CustomSceneryPath -Directory | Select-Object -ExpandProperty Name
 
-# Step 6: Normalize folder names by removing trailing slashes for consistent comparison
-$CurrentFolderList = $SceneryFolders | ForEach-Object { "Custom Scenery\$_" } | Sort-Object
+# Step 9: Normalize folder names by removing trailing slashes for consistent comparison
+$CurrentFolderList = $SceneryFolders | ForEach-Object { "Custom Scenery/$_" } | Sort-Object
 
-# Step 7: Detect similar folder names with trailing slashes or case differences
+# Step 10: Detect similar folder names with trailing slashes or case differences
 $ConflictingEntries = @()
 
 foreach ($Existing in $ExistingReferences) {
@@ -100,7 +166,7 @@ foreach ($Existing in $ExistingReferences) {
     }
 }
 
-# Step 8: Prompt user for any conflicts
+# Step 11: Prompt user for any conflicts
 if ($ConflictingEntries.Count -gt 0) {
     Write-Host "The following conflicts were found:" -ForegroundColor Yellow
     $ConflictingEntries | ForEach-Object {
@@ -120,7 +186,7 @@ if ($ConflictingEntries.Count -gt 0) {
     }
 }
 
-# Step 9: Proceed with adding missing folders
+# Step 12: Proceed with adding missing folders
 $MissingFolders = $CurrentFolderList | Where-Object { $_ -notin $ExistingReferences }
 if ($MissingFolders.Count -eq 0) {
     Write-Host "All scenery folders are already referenced in scenery_packs.ini." -ForegroundColor Green
@@ -128,23 +194,18 @@ if ($MissingFolders.Count -eq 0) {
     exit
 }
 
-# Step 10: Print the differences
+# Step 13: Print the differences
 Write-Host "The following folders are not referenced in scenery_packs.ini:" -ForegroundColor Cyan
 $MissingFolders | ForEach-Object { Write-Host "- $_" }
 
-# Step 11: Prompt the user to commit changes
+# Step 14: Prompt the user to commit changes
 $AddMissing = Read-Host "Do you want to add these folders to the ini file? (yes/no)"
 if ($AddMissing -ne "yes") {
     Write-Host "No changes made to scenery_packs.ini." -ForegroundColor Yellow
     exit
 }
 
-# Step 12: Backup the scenery_packs.ini file
-Write-Host "Creating a backup of the existing scenery_packs.ini..." -ForegroundColor Cyan
-Copy-Item -Path $SceneryPacksFile -Destination $BackupFile -Force
-Write-Host "Backup created at $BackupFile" -ForegroundColor Green
-
-# Step 13: Insert missing folders at line 3
+# Step 15: Insert missing folders at line 3
 $AppendEntries = $MissingFolders | ForEach-Object { "SCENERY_PACK $_" }
 
 # Ensure we have at least 3 lines before inserting
@@ -156,12 +217,12 @@ if ($SceneryPacksContent.Count -ge 3) {
     $SceneryPacksContent += $AppendEntries
 }
 
-# Step 14: Write updated content back to the ini file, preserving line breaks
+# Step 16: Write updated content back to the ini file, preserving line breaks
 $SceneryPacksContent -join "`r`n" | Set-Content -Path $SceneryPacksFile -Encoding ASCII
 
 Write-Host "Missing folders have been added to scenery_packs.ini at line 3, and the order has been preserved." -ForegroundColor Green
 
-# Step 15: Delete the comparison cache file
+# Step 17: Delete the comparison cache file
 if (Test-Path $ComparisonCacheFile) {
     Remove-Item -Path $ComparisonCacheFile -Force
     Write-Host "Deleted comparison cache file: $ComparisonCacheFile" -ForegroundColor Green
