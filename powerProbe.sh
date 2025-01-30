@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.3
+# Version: 1.4.4
 # Created by @PBandJamf
 
 # Changelog:
+# v1.4.4 - Fixed repeated assertion output; only print assertion states once.
 # v1.4.3 - Reformatted "Total Sleep/Wakes since boot" to user-friendly format; renamed assertions for clarity; removed verbose logging of internal processes
 # v1.4.2 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
 # v1.4.1 - Excluded assertion-related lines from Sleep/Wake History output (PreventUserIdleSystemSleep, PreventUserIdleDisplaySleep)
@@ -13,7 +14,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.3"
+VERSION="1.4.4"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -67,15 +68,30 @@ check_power_analytics() {
     # Sleep Assertions (Renaming for friendly readability)
     echo "\nSleep Assertions:"
     echo "---------------------------------------------------------"
-    pmset -g log | grep -E "(PreventUserIdleDisplaySleep|PreventSystemSleep|PreventUserIdleSystemSleep)" | awk '{
-        if ($0 ~ /PreventUserIdleDisplaySleep/) {
-            print "Prevent Sleep when Display is Active: 1"
-        } else if ($0 ~ /PreventSystemSleep/) {
-            print "Prevent System Sleep: 1"
-        } else if ($0 ~ /PreventUserIdleSystemSleep/) {
-            print "Prevent Sleep due to User Inactivity: 1"
-        }
-    }'
+    
+    # Check for assertion states
+    display_sleep_active=$(pmset -g log | grep -c "PreventUserIdleDisplaySleep")
+    system_sleep_active=$(pmset -g log | grep -c "PreventSystemSleep")
+    user_inactivity_sleep_active=$(pmset -g log | grep -c "PreventUserIdleSystemSleep")
+
+    if [ "$display_sleep_active" -gt 0 ]; then
+        echo "Prevent Sleep when Display is Active: 1"
+    else
+        echo "Prevent Sleep when Display is Active: 0"
+    fi
+    
+    if [ "$system_sleep_active" -gt 0 ]; then
+        echo "Prevent System Sleep: 1"
+    else
+        echo "Prevent System Sleep: 0"
+    fi
+
+    if [ "$user_inactivity_sleep_active" -gt 0 ]; then
+        echo "Prevent Sleep due to User Inactivity: 1"
+    else
+        echo "Prevent Sleep due to User Inactivity: 0"
+    fi
+
     echo "---------------------------------------------------------"
     echo ""
 }
