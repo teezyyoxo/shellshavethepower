@@ -1,20 +1,18 @@
-# shutdownSleuth
-# An interactive PowerShell script to diagnose unexpected power events.
+# PowerShell script to diagnose unexpected power events
 # Created by @PBandJamf
-# Version: 1.1.0
+# Version: 1.1.1
 # Changelog:
-# - Made the script interactive
-# - Utilized $powerInfo for informational purposes
-# - Added user selection for past events
-# - Implemented loop for multiple selections until termination
-# - Improved report readability
+# - Fixed unused variable warning for $powerInfo
+# - Renamed function 'Generate-Report' to use an approved verb
+# - Renamed variable 'event' to avoid conflict with PowerShell automatic variables
 
-Write-Output "Power Event Diagnosis Script - Version 1.1.0"
+Write-Output "Power Event Diagnosis Script - Version 1.1.1"
 Write-Output "Created by @PBandJamf"
 
 # Gather power-related information
 $powerInfo = powercfg /energy /output energy-report.html /duration 10
 Write-Output "Power diagnostics report generated: energy-report.html"
+Write-Output $powerInfo
 
 $lastWakeInfo = powercfg /lastwake
 $sleepStudy = powercfg /sleepstudy
@@ -31,13 +29,13 @@ $eventApp = Get-WinEvent -LogName Application -MaxEvents 100 | Where-Object {
 # Find recent unexpected shutdowns in the past week
 $recentEvents = $eventSystem | Where-Object { $_.TimeCreated -gt (Get-Date).AddDays(-7) } | Sort-Object TimeCreated -Descending
 
-function Generate-Report($event) {
+function Get-PowerEventReport($evt) {
     return @"
 ===== Power Event Diagnosis Report =====
 
-**Timestamp:** $($event.TimeCreated)
-**Event ID:** $($event.Id)
-**Message:** $($event.Message)
+**Timestamp:** $($evt.TimeCreated)
+**Event ID:** $($evt.Id)
+**Message:** $($evt.Message)
 
 **Power Configuration Analysis:**
 Last Wake Reason:
@@ -66,15 +64,15 @@ $($eventApp | Format-Table TimeCreated, Id, Message -AutoSize | Out-String)
 while ($true) {
     Write-Output "\nRecent unexpected shutdown/reboot events in the past week:" 
     $index = 1
-    foreach ($event in $recentEvents) {
-        Write-Output "$index. $($event.TimeCreated)"
+    foreach ($evt in $recentEvents) {
+        Write-Output "$index. $($evt.TimeCreated)"
         $index++
     }
 
     $selection = Read-Host "Enter the number of the event to diagnose (or press CTRL+C to exit)"
     if ($selection -match '^[0-9]+$' -and [int]$selection -le $recentEvents.Count) {
         $selectedEvent = $recentEvents[[int]$selection - 1]
-        Write-Output (Generate-Report $selectedEvent)
+        Write-Output (Get-PowerEventReport $selectedEvent)
     } else {
         Write-Output "Invalid selection. Please enter a valid number."
     }
