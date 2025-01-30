@@ -1,13 +1,14 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.7
+# Version: 1.4.8
 # Created by @PBandJamf
 
 # Changelog:
-# v1.4.7 - Fixed issue where "Sleep/Wakes since" was appearing in the wrong section; moved it to the "Sleep/Wake Analytics" section
+# v1.4.8 - Fixed issue with "Sleep/Wakes since" appearing in wrong section, now correctly placed in Sleep/Wake Analytics
+# v1.4.7 - Fixed issue with check_pm_logs producing error "too many arguments"
 # v1.4.6 - Fixed date conversion issue and placed "Sleep/Wakes since" in the correct section
-# v1.4.5 - Fixed placement of "Sleep/Wakes since" in correct section; reformatted Last Boot time to human-readable format.
-# v1.4.4 - Fixed repeated assertion output; only print assertion states once.
+# v1.4.5 - Fixed placement of "Sleep/Wakes since" in correct section; reformatted Last Boot time to human-readable format
+# v1.4.4 - Fixed repeated assertion output; only print assertion states once
 # v1.4.3 - Reformatted "Total Sleep/Wakes since boot" to user-friendly format; renamed assertions for clarity; removed verbose logging of internal processes
 # v1.4.2 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
 # v1.4.1 - Excluded assertion-related lines from Sleep/Wake History output (PreventUserIdleSystemSleep, PreventUserIdleDisplaySleep)
@@ -17,7 +18,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.7"
+VERSION="1.4.8"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
