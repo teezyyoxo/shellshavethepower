@@ -1,17 +1,18 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.9
+# Version: 1.4.10
 # Created by @PBandJamf
 
 # Changelog:
+# v1.4.10 - Fixed "too many arguments" error in check_pm_logs by adjusting how log output is filtered
 # v1.4.9 - Fixed check_pm_logs to only show shutdown causes and error codes, formatted output with descriptions
 # v1.4.8 - Fixed "Sleep/Wakes since" placement and removed "too many arguments" error
 # v1.4.7 - Fixed issue with check_pm_logs producing error "too many arguments"
 # v1.4.6 - Fixed date conversion issue and placed "Sleep/Wakes since" in the correct section
-# v1.4.5 - Fixed placement of "Sleep/Wakes since" in correct section; reformatted Last Boot time to human-readable format
-# v1.4.4 - Fixed repeated assertion output; only print assertion states once
-# v1.4.3 - Reformatted "Total Sleep/Wakes since boot" to user-friendly format; renamed assertions for clarity; removed verbose logging of internal processes
-# v1.4.2 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
+# v1.4.5 - Fixed repeated assertion output; only print assertion states once
+# v1.4.4 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
+# v1.4.3 - Fixed formatting issues in Sleep/Wake History; filtered out unwanted lines from log output
+# v1.4.2 - Fixed placement of "Sleep/Wakes since" in correct section; improved filtering to exclude verbose logs in analytics
 # v1.4.1 - Excluded assertion-related lines from Sleep/Wake History output (PreventUserIdleSystemSleep, PreventUserIdleDisplaySleep)
 # v1.4.0 - Fixed formatting issues in Sleep/Wake History; filtered out unwanted lines from log output
 # v1.3.0 - Formatted Sleep/Wake History into a table with separate analytics
@@ -19,7 +20,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.9"
+VERSION="1.4.10"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -30,11 +31,13 @@ check_pm_logs() {
     echo "📜 Recent Power Management Logs (Shutdown Causes):"
     echo "---------------------------------------------------------"
     
-    # Get shutdown cause logs (with error codes and descriptions)
+    # Filter for only shutdown cause logs, using log show with predicate
     log show --predicate 'eventMessage contains "Previous shutdown cause"' --last 24h | while read -r line; do
+        # Look for shutdown cause code
         shutdown_code=$(echo "$line" | grep -oP '(?<=Previous shutdown cause: )\d+')
         
         if [[ -n "$shutdown_code" ]]; then
+            # Map shutdown code to description
             case $shutdown_code in
                 7) description="CPU thread error. If this occurs during boot, try Safe Mode by holding ⇧shift at boot to limit what opens during startup." ;;
                 6) description="Unknown. Please share any information you may have." ;;
