@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.1
+# Version: 1.4.2
 # Created by @PBandJamf
 
 # Changelog:
+# v1.4.2 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
 # v1.4.1 - Excluded assertion-related lines from Sleep/Wake History output (PreventUserIdleSystemSleep, PreventUserIdleDisplaySleep)
 # v1.4.0 - Fixed formatting issues in Sleep/Wake History; filtered out unwanted lines from log output
 # v1.3.0 - Formatted Sleep/Wake History into a table with separate analytics
@@ -11,7 +12,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.1"
+VERSION="1.4.2"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -49,10 +50,12 @@ check_power_history() {
         printf "%-25s %-10s %-40s\n", timestamp, event, details;
     }' | tail -10
     echo "---------------------------------------------------------\n"
-    
+}
+
+check_power_analytics() {
     echo "📊 Sleep/Wake Analytics:"
     echo "---------------------------------------------------------"
-    pmset -g log | grep -E "(Total Sleep/Wakes|PreventUserIdleDisplaySleep|PreventSystemSleep|PreventUserIdleSystemSleep|pid)" | awk '{
+    pmset -g log | grep -E "(Total Sleep/Wakes|PreventUserIdleDisplaySleep|PreventSystemSleep|PreventUserIdleSystemSleep|pid)" | grep -v -E "(Assertions)" | awk '{
         print $0;
     }'
     echo "---------------------------------------------------------"
@@ -81,6 +84,7 @@ main() {
     print_header
     check_pm_logs
     check_power_history
+    check_power_analytics
     check_battery_status
     check_power_adapter
     check_thermal_events
