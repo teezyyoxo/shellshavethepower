@@ -1,7 +1,6 @@
 # shellsHaveThePower ⚡
 
-Welcome!
-This is my collection of powerful and nifty PowerShell scripts designed to streamline tasks, automate workflows, and make your life easier.
+# Welcome!
 
 ## 🔥 About
 This repository is a play on "PowerShell"—because, well, **shells have the power**! Whether you're looking to automate system administration, or perform bulk operations, this repo has something for you.
