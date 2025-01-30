@@ -1,16 +1,17 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.0
+# Version: 1.4.1
 # Created by @PBandJamf
 
 # Changelog:
+# v1.4.1 - Excluded assertion-related lines from Sleep/Wake History output (PreventUserIdleSystemSleep, PreventUserIdleDisplaySleep)
 # v1.4.0 - Fixed formatting issues in Sleep/Wake History; filtered out unwanted lines from log output
 # v1.3.0 - Formatted Sleep/Wake History into a table with separate analytics
 # v1.2.0 - Added timestamps to Sleep/Wake History
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.0"
+VERSION="1.4.1"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -28,7 +29,7 @@ check_power_history() {
     echo "---------------------------------------------------------"
     printf "%-25s %-10s %-40s\n" "Timestamp" "Event" "Details"
     echo "---------------------------------------------------------"
-    pmset -g log | grep -E "(Sleep|Wake)" | grep -v -E "(Total|Prevent|pid)" | awk '{
+    pmset -g log | grep -E "(Sleep|Wake)" | grep -v -E "(Total|Prevent|pid|Assertions)" | awk '{
         timestamp = $1 " "$2;
         event = "Unknown";
         details = "";
