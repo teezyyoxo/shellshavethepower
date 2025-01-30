@@ -1,14 +1,15 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.2.0
+# Version: 1.3.0
 # Created by @PBandJamf
 
 # Changelog:
+# v1.3.0 - Formatted Sleep/Wake History into a table with separate analytics
 # v1.2.0 - Added timestamps to Sleep/Wake History
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -23,20 +24,36 @@ check_pm_logs() {
 
 check_power_history() {
     echo "📊 Sleep/Wake History:"
+    echo "---------------------------------------------------------"
+    printf "%-25s %-10s %-40s\n" "Timestamp" "Event" "Details"
+    echo "---------------------------------------------------------"
     pmset -g log | grep -E "(Sleep|Wake)" | awk '{
         timestamp = $1 " "$2;
+        event = "Unknown";
+        details = "";
         if ($0 ~ /Created MaintenanceWake/) {
-            print timestamp " - Wake Event: Maintenance Wake";
+            event = "Wake";
+            details = "Maintenance Wake";
         } else if ($0 ~ /Released MaintenanceWake/) {
-            print timestamp " - Sleep Event: Maintenance Wake Released";
+            event = "Sleep";
+            details = "Maintenance Wake Released";
         } else if ($0 ~ /Sleep/) {
-            print timestamp " - System Entered Sleep Mode";
+            event = "Sleep";
+            details = "System Entered Sleep Mode";
         } else if ($0 ~ /Wake/) {
-            print timestamp " - System Woke Up";
-        } else {
-            print timestamp " - " $0;
+            event = "Wake";
+            details = "System Woke Up";
         }
-    }' | tail -10 || echo "No sleep/wake events found."
+        printf "%-25s %-10s %-40s\n", timestamp, event, details;
+    }' | tail -10
+    echo "---------------------------------------------------------\n"
+    
+    echo "📊 Sleep/Wake Analytics:"
+    echo "---------------------------------------------------------"
+    pmset -g log | grep -E "(Total Sleep/Wakes|PreventUserIdleDisplaySleep|PreventSystemSleep|PreventUserIdleSystemSleep|pid)" | awk '{
+        print $0;
+    }'
+    echo "---------------------------------------------------------"
     echo ""
 }
 
