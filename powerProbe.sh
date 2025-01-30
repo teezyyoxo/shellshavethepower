@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.5.2
+# Version: 1.6.0
 # Created by @PBandJamf
 
 # Changelog:
+# v1.6.0 - Updated battery analytics section (still WIP)
 # v1.5.2 - Fixed empty log output handling, skipping parsing to avoid "too many arguments" error
 # v1.5.1 - Fixed issue where "too many arguments" error was occurring when no shutdown logs were found.
 # v1.5.0 - Fixed "too many arguments" error in check_pm_logs by restructuring log processing and using more robust parsing
