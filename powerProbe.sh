@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.5.1
+# Version: 1.5.2
 # Created by @PBandJamf
 
 # Changelog:
+# v1.5.2 - Fixed empty log output handling, skipping parsing to avoid "too many arguments" error
 # v1.5.1 - Fixed issue where "too many arguments" error was occurring when no shutdown logs were found.
 # v1.5.0 - Fixed "too many arguments" error in check_pm_logs by restructuring log processing and using more robust parsing
 # v1.4.11 - Fixed "too many arguments" error by adjusting how shutdown cause logs are processed
@@ -23,7 +24,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.5.1"
+VERSION="1.5.2"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -36,11 +37,12 @@ check_pm_logs() {
     
     # Run the log command, limiting output to relevant logs containing "Previous shutdown cause"
     logs=$(log show --predicate 'eventMessage contains "Previous shutdown cause"' --last 24h)
-
+    
     # Check if logs are empty or not
-    if [ -z "$logs" ]; then
+    if [[ -z "$logs" || "$logs" == *"No matching processes"* ]]; then
         echo "No shutdown causes found in the last 24 hours."
     else
+        # If there are logs, we process them
         echo "$logs" | grep -oP '(?<=Previous shutdown cause: )\d+' | while read -r shutdown_code; do
             # Map shutdown code to description
             case $shutdown_code in
