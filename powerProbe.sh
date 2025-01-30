@@ -1,9 +1,13 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.0.0
+# Version: 1.1.0
 # Created by @PBandJamf
 
-VERSION="1.0.0"
+# Changelog:
+# v1.1.0 - Improved Sleep/Wake History readability
+# v1.0.0 - Initial release
+
+VERSION="1.1.0"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -18,7 +22,19 @@ check_pm_logs() {
 
 check_power_history() {
     echo "📊 Sleep/Wake History:"
-    pmset -g log | grep -E "(Sleep|Wake)" | tail -15 || echo "No sleep/wake events found."
+    pmset -g log | grep -E "(Sleep|Wake)" | awk '{
+        if ($0 ~ /Created MaintenanceWake/) {
+            print "Wake Event: Maintenance Wake";
+        } else if ($0 ~ /Released MaintenanceWake/) {
+            print "Sleep Event: Maintenance Wake Released";
+        } else if ($0 ~ /Sleep/) {
+            print "System Entered Sleep Mode";
+        } else if ($0 ~ /Wake/) {
+            print "System Woke Up";
+        } else {
+            print $0;
+        }
+    }' | tail -10 || echo "No sleep/wake events found."
     echo ""
 }
 
