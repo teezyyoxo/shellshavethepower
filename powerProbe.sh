@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.4
+# Version: 1.4.5
 # Created by @PBandJamf
 
 # Changelog:
+# v1.4.5 - Fixed placement of "Sleep/Wakes since" in correct section; reformatted Last Boot time to human-readable format.
 # v1.4.4 - Fixed repeated assertion output; only print assertion states once.
 # v1.4.3 - Reformatted "Total Sleep/Wakes since boot" to user-friendly format; renamed assertions for clarity; removed verbose logging of internal processes
 # v1.4.2 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
@@ -14,7 +15,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.4"
+VERSION="1.4.5"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -57,8 +58,10 @@ check_power_history() {
 check_power_analytics() {
     echo "📊 Sleep/Wake Analytics:"
     echo "---------------------------------------------------------"
+    
     # Last boot time and total sleep/wake events
-    last_boot=$(sysctl -n kern.boottime | awk -F" " '{print $4" "$5}' | sed 's/,//')
+    last_boot_epoch=$(sysctl -n kern.boottime | awk -F" " '{print $4" "$5}' | sed 's/,//')
+    last_boot=$(date -j -f "%a %b %d %H:%M:%S %Z %Y" "$last_boot_epoch" "+%d/%m/%Y %H:%M:%S")
     total_sleep_wakes=$(pmset -g log | grep -E "Sleep|Wake" | wc -l)
 
     # Print user-friendly information
