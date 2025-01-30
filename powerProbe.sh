@@ -161,15 +161,35 @@ check_power_analytics() {
     echo ""
 }
 
-check_battery_status() {
+check_battery_info() {
     echo "🔋 Battery Information:"
-    pmset -g batt || echo "No battery information available."
+    echo "---------------------------------------------------------"
+    
+    battery_info=$(system_profiler SPPowerDataType | awk '/Battery Information:/,0')
+    
+    if [[ -z "$battery_info" ]]; then
+        echo "No battery information available."
+    else
+        echo "$battery_info" | awk '/Charge Information:/,0' | grep -E "Full Charge Capacity|State of Charge|Charge Remaining|Amperage|Voltage|Cycle Count|Condition|Battery Installed" 
+    fi
+    
+    echo "---------------------------------------------------------"
     echo ""
 }
 
 check_power_adapter() {
     echo "🔌 Power Adapter Details:"
-    ioreg -p IODeviceTree -r -n AppleSmartBattery | grep -i "ExternalConnected" || echo "No power adapter detected."
+    echo "---------------------------------------------------------"
+
+    adapter_info=$(system_profiler SPPowerDataType | awk '/AC Charger Information:/,0')
+
+    if [[ -z "$adapter_info" || "$adapter_info" == *"No AC charger found"* ]]; then
+        echo "No power adapter detected."
+    else
+        echo "$adapter_info" | awk '/Wattage|Amperage|Voltage|Serial Number/'
+    fi
+
+    echo "---------------------------------------------------------"
     echo ""
 }
 
