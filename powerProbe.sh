@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.2
+# Version: 1.4.3
 # Created by @PBandJamf
 
 # Changelog:
+# v1.4.3 - Reformatted "Total Sleep/Wakes since boot" to user-friendly format; renamed assertions for clarity; removed verbose logging of internal processes
 # v1.4.2 - Fixed placement of "Sleep/Wakes since" in Sleep/Wake Analytics; improved filtering to exclude verbose logs in analytics
 # v1.4.1 - Excluded assertion-related lines from Sleep/Wake History output (PreventUserIdleSystemSleep, PreventUserIdleDisplaySleep)
 # v1.4.0 - Fixed formatting issues in Sleep/Wake History; filtered out unwanted lines from log output
@@ -12,7 +13,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.2"
+VERSION="1.4.3"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -55,8 +56,25 @@ check_power_history() {
 check_power_analytics() {
     echo "📊 Sleep/Wake Analytics:"
     echo "---------------------------------------------------------"
-    pmset -g log | grep -E "(Total Sleep/Wakes|PreventUserIdleDisplaySleep|PreventSystemSleep|PreventUserIdleSystemSleep|pid)" | grep -v -E "(Assertions)" | awk '{
-        print $0;
+    # Last boot time and total sleep/wake events
+    last_boot=$(sysctl -n kern.boottime | awk -F" " '{print $4" "$5}' | sed 's/,//')
+    total_sleep_wakes=$(pmset -g log | grep -E "Sleep|Wake" | wc -l)
+
+    # Print user-friendly information
+    echo "Last boot: $last_boot"
+    echo "Total number of sleep/wake events since boot: $total_sleep_wakes"
+    
+    # Sleep Assertions (Renaming for friendly readability)
+    echo "\nSleep Assertions:"
+    echo "---------------------------------------------------------"
+    pmset -g log | grep -E "(PreventUserIdleDisplaySleep|PreventSystemSleep|PreventUserIdleSystemSleep)" | awk '{
+        if ($0 ~ /PreventUserIdleDisplaySleep/) {
+            print "Prevent Sleep when Display is Active: 1"
+        } else if ($0 ~ /PreventSystemSleep/) {
+            print "Prevent System Sleep: 1"
+        } else if ($0 ~ /PreventUserIdleSystemSleep/) {
+            print "Prevent Sleep due to User Inactivity: 1"
+        }
     }'
     echo "---------------------------------------------------------"
     echo ""
