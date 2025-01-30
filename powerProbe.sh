@@ -1,9 +1,10 @@
 #!/bin/zsh
 # PowerProbe - A macOS Power Diagnostics Script
-# Version: 1.4.11
+# Version: 1.5.0
 # Created by @PBandJamf
 
 # Changelog:
+# v1.5.0 - Fixed "too many arguments" error in check_pm_logs by restructuring log processing and using more robust parsing
 # v1.4.11 - Fixed "too many arguments" error by adjusting how shutdown cause logs are processed
 # v1.4.10 - Fixed "too many arguments" error in check_pm_logs by adjusting how log output is filtered
 # v1.4.9 - Fixed check_pm_logs to only show shutdown causes and error codes, formatted output with descriptions
@@ -21,7 +22,7 @@
 # v1.1.0 - Improved Sleep/Wake History readability
 # v1.0.0 - Initial release
 
-VERSION="1.4.11"
+VERSION="1.5.0"
 
 print_header() {
     echo "\n🔋 PowerProbe v$VERSION - macOS Power Diagnostics"
@@ -32,57 +33,52 @@ check_pm_logs() {
     echo "📜 Recent Power Management Logs (Shutdown Causes):"
     echo "---------------------------------------------------------"
     
-    # Capture logs for the shutdown cause
+    # Run the log command, limiting output to relevant logs containing "Previous shutdown cause"
     logs=$(log show --predicate 'eventMessage contains "Previous shutdown cause"' --last 24h)
 
     if [ -z "$logs" ]; then
         echo "No shutdown causes found in the last 24 hours."
     else
-        echo "$logs" | while IFS= read -r line; do
-            # Extract the shutdown cause code from the log
-            shutdown_code=$(echo "$line" | grep -oP '(?<=Previous shutdown cause: )\d+')
+        echo "$logs" | grep -oP '(?<=Previous shutdown cause: )\d+' | while read -r shutdown_code; do
+            # Map shutdown code to description
+            case $shutdown_code in
+                7) description="CPU thread error. If this occurs during boot, try Safe Mode by holding ⇧shift at boot to limit what opens during startup." ;;
+                6) description="Unknown. Please share any information you may have." ;;
+                5) description="Correct Shut Down. Shutdown was initiated normally." ;;
+                3) description="Hard shutdown. Check if the power button was stuck down." ;;
+                2) description="Power supply disconnected. Check power supply/battery." ;;
+                1) description="Restart. Restart was initiated normally." ;;
+                0) description="Battery disconnected. May indicate a hardware issue with the battery or controller." ;;
+                -3) description="Multiple temperature sensors exceeded limits. Run diagnostics with Apple Diagnostics." ;;
+                -14) description="Electricity spike/surge. Check power supply." ;;
+                -20) description="BridgeOS T2-initiated shutdown. Shutdown caused by T2 chip." ;;
+                -60) description="Battery fully drained. May indicate a hardware issue." ;;
+                -61) description="Watchdog timer detected unresponsive application, shutting down." ;;
+                -62) description="Watchdog timer detected unresponsive application, restarting system." ;;
+                -63) description="Unknown. Please share any information you may have." ;;
+                -64) description="Unknown. Please share any information you may have." ;;
+                -65) description="Potential OS issue. Try reinstalling macOS." ;;
+                -71) description="SO-DIMM memory temperature exceeds limits. Check memory modules." ;;
+                -74) description="Battery temperature exceeds limits. Reset SMC." ;;
+                -75) description="Communication issue with AC adapter." ;;
+                -78) description="Incorrect current value from AC adapter." ;;
+                -79) description="Incorrect current value from battery." ;;
+                -81) description="Thermal shutdown for overtemp. Check thermal components." ;;
+                -86) description="Proximity temperature exceeds limits." ;;
+                -95) description="CPU temperature exceeds limits." ;;
+                -100) description="Power supply temperature exceeds limits." ;;
+                -102) description="Overvoltage. Safety shutdown." ;;
+                -103) description="Battery cell under voltage detected." ;;
+                -104) description="Unknown. Please share any information you may have." ;;
+                -108) description="Unverified memory issue." ;;
+                -112) description="Unverified memory issue." ;;
+                -127) description="PMU forced shutdown. Check power button." ;;
+                -128) description="Possible memory issue." ;;
+                *) description="Unknown error code." ;;
+            esac
 
-            if [[ -n "$shutdown_code" ]]; then
-                # Map shutdown code to description
-                case $shutdown_code in
-                    7) description="CPU thread error. If this occurs during boot, try Safe Mode by holding ⇧shift at boot to limit what opens during startup." ;;
-                    6) description="Unknown. Please share any information you may have." ;;
-                    5) description="Correct Shut Down. Shutdown was initiated normally." ;;
-                    3) description="Hard shutdown. Check if the power button was stuck down." ;;
-                    2) description="Power supply disconnected. Check power supply/battery." ;;
-                    1) description="Restart. Restart was initiated normally." ;;
-                    0) description="Battery disconnected. May indicate a hardware issue with the battery or controller." ;;
-                    -3) description="Multiple temperature sensors exceeded limits. Run diagnostics with Apple Diagnostics." ;;
-                    -14) description="Electricity spike/surge. Check power supply." ;;
-                    -20) description="BridgeOS T2-initiated shutdown. Shutdown caused by T2 chip." ;;
-                    -60) description="Battery fully drained. May indicate a hardware issue." ;;
-                    -61) description="Watchdog timer detected unresponsive application, shutting down." ;;
-                    -62) description="Watchdog timer detected unresponsive application, restarting system." ;;
-                    -63) description="Unknown. Please share any information you may have." ;;
-                    -64) description="Unknown. Please share any information you may have." ;;
-                    -65) description="Potential OS issue. Try reinstalling macOS." ;;
-                    -71) description="SO-DIMM memory temperature exceeds limits. Check memory modules." ;;
-                    -74) description="Battery temperature exceeds limits. Reset SMC." ;;
-                    -75) description="Communication issue with AC adapter." ;;
-                    -78) description="Incorrect current value from AC adapter." ;;
-                    -79) description="Incorrect current value from battery." ;;
-                    -81) description="Thermal shutdown for overtemp. Check thermal components." ;;
-                    -86) description="Proximity temperature exceeds limits." ;;
-                    -95) description="CPU temperature exceeds limits." ;;
-                    -100) description="Power supply temperature exceeds limits." ;;
-                    -102) description="Overvoltage. Safety shutdown." ;;
-                    -103) description="Battery cell under voltage detected." ;;
-                    -104) description="Unknown. Please share any information you may have." ;;
-                    -108) description="Unverified memory issue." ;;
-                    -112) description="Unverified memory issue." ;;
-                    -127) description="PMU forced shutdown. Check power button." ;;
-                    -128) description="Possible memory issue." ;;
-                    *) description="Unknown error code." ;;
-                esac
-
-                # Print the shutdown cause with its description
-                echo "$shutdown_code: $description"
-            fi
+            # Print the shutdown cause with its description
+            echo "$shutdown_code: $description"
         done
     fi
     echo "---------------------------------------------------------"
